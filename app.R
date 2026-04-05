@@ -1,12 +1,15 @@
-# =======================================
 library(shiny)
 source("R/grid.R")
+source("R/validation.R")
 
 ui <- fluidPage(
   titlePanel("Slitherlink"),
   plotOutput("grille_plot", click = "clic_grille", height = "600px", width = "600px"),
-  textOutput("statut"),
-  actionButton("reset", "Recommencer", class = "btn-primary")
+  fluidRow(
+    column(4, textOutput("statut")),
+    column(4, actionButton("verifier", "Vérifier", class = "btn-success")),
+    column(4, actionButton("reset", "Recommencer", class = "btn-primary"))
+  )
 )
 
 server <- function(input, output, session) {
@@ -25,15 +28,15 @@ server <- function(input, output, session) {
   segments_h <- reactiveVal(matrix(FALSE, nrow = 6, ncol = 5))
   segments_v <- reactiveVal(matrix(FALSE, nrow = 5, ncol = 6))
   
-  # Détection du segment cliqué (VERSION CORRIGÉE)
+  # Message de vérification
+  verification_message <- reactiveVal("")
+  
+  # Détection du segment cliqué
   detecter_segment <- function(x, y, taille = 5) {
     n_points <- taille + 1
     seuil <- 0.35
     
-    # CORRECTION : On garde y tel quel car RStudio donne des coordonnées correctes
-    # Mais il faut ajuster car R plot utilise un système différent
-    
-    # Test pour les segments horizontaux
+    # Segments horizontaux
     for (ligne in 1:n_points) {
       for (colonne in 1:taille) {
         milieu_x <- colonne + 0.5
@@ -45,7 +48,7 @@ server <- function(input, output, session) {
       }
     }
     
-    # Test pour les segments verticaux
+    # Segments verticaux
     for (ligne in 1:taille) {
       for (colonne in 1:n_points) {
         milieu_x <- colonne
@@ -77,6 +80,21 @@ server <- function(input, output, session) {
         mat[segment$ligne, segment$colonne] <- !mat[segment$ligne, segment$colonne]
         segments_v(mat)
       }
+      # Effacer le message quand on modifie les segments
+      verification_message("")
+    }
+  })
+  
+  # Bouton vérifier
+  observeEvent(input$verifier, {
+    grille <- ma_grille()
+    h_mat <- segments_h()
+    v_mat <- segments_v()
+    
+    if (verifier_regles(grille, h_mat, v_mat)) {
+      verification_message("🎉 BRAVO ! La grille est correcte ! 🎉")
+    } else {
+      verification_message("❌ Il reste des erreurs. Vérifie les chiffres !")
     }
   })
   
@@ -84,6 +102,7 @@ server <- function(input, output, session) {
   observeEvent(input$reset, {
     segments_h(matrix(FALSE, nrow = 6, ncol = 5))
     segments_v(matrix(FALSE, nrow = 5, ncol = 6))
+    verification_message("")
   })
   
   # Affichage
@@ -92,7 +111,6 @@ server <- function(input, output, session) {
     taille <- nrow(grille)
     n_points <- taille + 1
     
-    # Configuration du graphique
     par(mar = c(1, 1, 2, 1))
     plot(1:n_points, 1:n_points, 
          type = "n", axes = FALSE, xlab = "", ylab = "", asp = 1,
@@ -131,7 +149,7 @@ server <- function(input, output, session) {
         chiffre <- grille[i, j]
         if (!is.na(chiffre)) {
           x_centre <- j + 0.5
-          y_centre <- i + 0.5  # CORRECTION : plus d'inversion d'axe
+          y_centre <- i + 0.5
           text(x_centre, y_centre, label = chiffre, cex = 2.5, font = 2, col = "darkred")
         }
       }
@@ -144,7 +162,12 @@ server <- function(input, output, session) {
   output$statut <- renderText({
     total_h <- sum(segments_h())
     total_v <- sum(segments_v())
-    paste("Segments tracés :", total_h + total_v)
+    msg <- verification_message()
+    if (msg != "") {
+      paste(msg, "| Segments :", total_h + total_v)
+    } else {
+      paste("Segments tracés :", total_h + total_v)
+    }
   })
 }
 
