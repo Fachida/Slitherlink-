@@ -1,100 +1,119 @@
-# ui.R - Interface utilisateur et design
+# interface.R - Interface utilisateur (style cours Shiny)
 
 library(shiny)
 
-confetti_js <- "
-Shiny.addCustomMessageHandler('lancer_confettis', function(message) {
-  confetti({ particleCount: 300, spread: 100, origin: { y: 0.6 } });
-  setTimeout(function() {
-    confetti({ particleCount: 200, spread: 120, origin: { y: 0.7, x: 0.2 } });
-    confetti({ particleCount: 200, spread: 120, origin: { y: 0.7, x: 0.8 } });
-  }, 200);
-});
-"
-
 ui <- fluidPage(
+  
+  # CSS personnalisé (comme montré dans le cours)
   tags$head(
-    tags$script(src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1"),
-    tags$script(HTML(confetti_js)),
     tags$style(HTML("
       body {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        background-color: #f8f9fa;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       }
       .title-panel {
         text-align: center;
-        margin-bottom: 30px;
-      }
-      .title-panel h1 {
-        background: linear-gradient(135deg, #60a5fa, #a78bfa);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        font-size: 52px;
-        font-weight: bold;
-      }
-      .title-panel p {
-        color: #94a3b8;
-        font-size: 16px;
-      }
-      .btn-verifier {
-        background: linear-gradient(45deg, #10b981, #34d399);
-        border: none;
+        background-color: #2c3e50;
         color: white;
-        font-weight: bold;
-        padding: 12px 28px;
-        border-radius: 40px;
-        transition: all 0.3s ease;
-        margin: 0 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
       }
-      .btn-verifier:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 15px rgba(16,185,129,0.5);
+      .well {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       }
-      .btn-reset {
-        background: linear-gradient(45deg, #ef4444, #f97316);
+      .btn-primary {
+        background-color: #3498db;
         border: none;
-        color: white;
-        font-weight: bold;
-        padding: 12px 28px;
-        border-radius: 40px;
-        transition: all 0.3s ease;
-        margin: 0 10px;
+        width: 100%;
+        margin-bottom: 10px;
       }
-      .btn-reset:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 15px rgba(239,68,68,0.5);
+      .btn-primary:hover {
+        background-color: #2980b9;
+      }
+      .btn-success {
+        background-color: #27ae60;
+        border: none;
+        width: 100%;
+      }
+      .btn-success:hover {
+        background-color: #2ecc71;
+      }
+      .btn-danger {
+        background-color: #e74c3c;
+        border: none;
+        width: 100%;
       }
       .statut-panel {
-        background: rgba(15, 23, 42, 0.8);
-        backdrop-filter: blur(10px);
-        padding: 15px;
-        border-radius: 20px;
+        background-color: #ecf0f1;
+        padding: 10px;
+        border-radius: 8px;
         text-align: center;
-        font-size: 18px;
         font-weight: bold;
-        margin-top: 20px;
-        color: #cbd5e1;
-        border: 1px solid #334155;
+        margin-top: 15px;
+      }
+      .aide-text {
+        color: #7f8c8d;
+        font-size: 12px;
+        margin-top: 10px;
+        text-align: center;
       }
     "))
   ),
   
+  # Titre principal
   div(class = "title-panel",
       h1("🐍 SLITHERLINK"),
-      p("Tracez la boucle fermée en respectant les chiffres")
+      p("Trace la boucle fermée en respectant les chiffres")
   ),
   
-  div(style = "display: flex; justify-content: center;",
-      plotOutput("grille_plot", click = "clic_grille", height = "600px", width = "600px")
-  ),
-  
-  div(style = "display: flex; justify-content: center; gap: 20px; margin-top: 20px;",
-      actionButton("verifier", "✓ VÉRIFIER", class = "btn-verifier"),
-      actionButton("reset", "⟳ RECOMMENCER", class = "btn-reset")
-  ),
-  
-  div(class = "statut-panel",
-      textOutput("statut")
+  # Layout comme dans le cours : sidebar + main
+  sidebarLayout(
+    
+    # Panneau latéral (widgets)
+    sidebarPanel(
+      h4("🎮 Paramètres"),
+      
+      # Sélecteur de niveau (comme selectInput dans le cours)
+      selectInput("niveau", 
+                  label = "Choisis ton niveau :",
+                  choices = c("🍃 Facile (5x5)" = "facile",
+                              "⚡ Moyen (7x7)" = "moyen",
+                              "🔥 Difficile (9x9)" = "difficile"),
+                  selected = "facile"),
+      
+      hr(),  # Ligne séparatrice
+      
+      h4("🎯 Actions"),
+      
+      # Boutons comme dans le cours
+      actionButton("verifier", "✓ VÉRIFIER", class = "btn-primary"),
+      actionButton("reset", "⟳ RECOMMENCER", class = "btn-danger"),
+      
+      hr(),
+      
+      h4("📖 Règles"),
+      p("• Un chiffre = nombre de segments autour"),
+      p("• 0 = aucun segment, 1 = un, 2 = deux, 3 = trois"),
+      p("• ❌ Case rouge = erreur"),
+      
+      div(class = "aide-text",
+          "💡 Clique sur un segment pour le tracer. Reclique pour l'effacer."
+      )
+    ),
+    
+    # Panneau principal (affichage de la grille)
+    mainPanel(
+      plotOutput("grille_plot", 
+                 click = "clic_grille",
+                 height = "550px",
+                 width = "550px"),
+      
+      div(class = "statut-panel",
+          textOutput("statut")
+      )
+    )
   )
 )

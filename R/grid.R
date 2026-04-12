@@ -27,3 +27,4 @@ exemple_grille <- function() {
   )
   return(chiffres)
 }
+
